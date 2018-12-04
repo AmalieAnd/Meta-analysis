@@ -1,0 +1,242 @@
+---
+title: "ASS_5 - Metaanalysis of pitch in schizophrenia"  
+author: "Amalie Lysgaard Andersen"
+date: "30/11/2018"
+output: word_document
+---
+
+
+```{r setup, include=FALSE}
+setwd("~/Library/Mobile Documents/com~apple~CloudDocs/4. Aarhus Universitet/3. Semester/1. Experimental Methods lll/R FOLDER/Meta-analysis/Meta-analysis")
+
+library(pacman)
+p_load(metafor, ggplot2, tidyverse, dplyr, lme4, forestplot,plyr)
+
+detach(package:plyr)
+library(dplyr)
+```
+
+# Building on the shoulders of giants: meta-analysis
+
+## Questions to be answered
+
+1. What is the current evidence for distinctive patterns of pitch mean and pitch sd in schizophrenia? Report how many papers report quantitative estimates, your method to analyze them, the estimated effect size of the difference (mean effect size and standard error for pitch mean, same for pitch sd) and forest plots representing it. 
+
+```{r Cleaning data}
+# Loading data
+data <- read.csv("Assignment5_MetaAnalysis_SR_SCHIZO.csv") 
+
+# Removing studies (note: the model filters them out anyway)
+data_clean <- data[!with(data,is.na(PITCH_F0_SZ_SD) & is.na(PITCH_F0SD_SZ_SD)),]
+# We exclude all studies in which only sample size is reported (24 studies are left)
+
+#Reading descriptions 
+#data_clean$ACOUST_ANA_DESCR
+```
+
+```{r Models}
+### PITCH MODEL
+pitch = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0_SZ_M, m2i=PITCH_F0_HC_M, sd1i=PITCH_F0_SZ_SD, sd2i=PITCH_F0_HC_SD, data = data_clean)
+
+# Mixed effects model 
+model_mean <- lmer(yi ~ 1 + (1 | StudyID), weights = 1/vi, data=pitch, control= lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+summary(model_mean)
+
+# Meta-analysis optimisation
+model_mean_meta <- rma(yi, vi, data = pitch, slab=StudyID)
+forest(model_mean_meta) 
+
+
+
+### PITCH VARIABILITY MODEL
+pitch_var = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0SD_SZ_M, m2i=PITCH_F0SD_HC_M, sd1i=PITCH_F0SD_SZ_SD, sd2i=PITCH_F0SD_HC_SD, data = data_clean)
+
+# Mixed effects model 
+model_var <- lmer(yi ~ 1 + (1 | StudyID), weights = 1/vi, data=pitch_var, control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+summary(model_var)
+
+# Meta-analysis optimisation
+model_var_meta <- rma(yi, vi, data = pitch_var, slab=StudyID) 
+forest(model_var_meta) 
+
+# Calling values
+model_mean_meta
+model_var_meta
+```
+
+```{r Testing influential studies}
+# Pitch mean
+inf <- influence(model_mean_meta)
+print(inf)
+plot(inf)
+
+# pitch variance
+inf2 <- influence(model_var_meta)
+print(inf2)
+plot(inf2)
+```
+
+```{r Funnel plot}
+# Pitch
+funnel(model_mean_meta, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
+
+#Range
+funnel(model_var_meta, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
+
+
+confint(model_var_meta, level =.95)
+```
+
+```{r Funnel plots add. data }
+# Funnel plot asymmetry - Pitch mean
+regtest(model_mean_meta) 
+ranktest(model_mean_meta)
+
+# Funnel plot asymmetry - Pitch variability
+regtest(model_var_meta)
+ranktest(model_var_meta) 
+ 
+
+model_var_meta
+```
+
+
+2. Do the results match your own analysis from Assignment 3? If you add your results to the meta-analysis, do the estimated effect sizes change? Report the new estimates and the new forest plots
+```{r Models}
+# Load data from ASS3
+data_ass3 <- read.csv("ASS3_data.csv")
+
+diagnosis <- c("Control", "Control", "Control", "Schizophrenia", "Schizophrenia", "Schizophrenia") 
+study <- c(1, 2, 3, 1, 2, 3)
+diag_stud <- as.data.frame(diagnosis)
+diag_stud$study <- study
+
+# Predicting models
+modelmodel_mean <- lmer(mean ~ diagnosis + (1 | ID) + (1 | trial) + (1 | study), data_ass3,  REML = F)
+modelmodel_var <- lmer(sd ~ diagnosis + (1 | ID) + (1 | trial) + (1 | study), data_ass3, REML = F)
+
+# Get optimal "mean" by predicting data for a matrix for 3 studies
+predict(modelmodel_mean, newdata = diag_stud, re.form = ~ (1 | study) , allow.new.levels = T)
+predict(modelmodel_var, newdata = diag_stud, re.form = ~ (1 | study), allow.new.levels = T)
+
+
+# Filtering # of participants in different variables
+data_ass3 %>% 
+  filter(diagnosis == "Control" & study == 1) %>%
+  nrow()
+#[1] 352
+
+data_ass3 %>% 
+  filter(diagnosis == "Schizophrenia" & study == 1) %>%
+  nrow()
+#[1] 335
+
+data_ass3 %>% 
+  filter(diagnosis == "Control" & study == 2) %>%
+  nrow()
+#[1] 184
+
+data_ass3 %>% 
+  filter(diagnosis == "Schizophrenia" & study == 2) %>%
+  nrow()
+#[1] 182
+
+data_ass3 %>% 
+  filter(diagnosis == "Control" & study == 4) %>%
+  nrow()
+#[1] 128
+
+data_ass3 %>% 
+  filter(diagnosis == "Schizophrenia" & study == 4) %>%
+  nrow()
+#[1] 158
+
+#Adding values to a dataframe with similar columns
+listoflists <- list(Title = ("Assignment 3"), StudyID = c(49, 50, 51), ArticleID = 47, SAMPLE_SIZE_SZ = c(335, 182, 158), SAMPLE_SIZE_HC = c(352, 184, 128), PITCH_F0_HC_M = c(142.4939, 123.8641, 137.0162), PITCH_F0_HC_SD = c(24.72409, 27.32127, 25.47117), PITCH_F0_SZ_M = c(156.2813, 137.6516, 150.8036), PITCH_F0_SZ_SD = c(24.72409, 27.32127, 25.47117))
+
+ass3 <- as.data.frame(listoflists)
+
+ass3$ACOUST_ANA_DESCR = NA
+ass3$DESCRIPTION = NA
+ass3$COMMENTS = NA
+ass3$frequency = NA
+ass3$Title = NA
+ass3$Authors = NA
+ass3$Article = NA
+ass3$Year_publication = NA
+ass3$PITCH_F0SD_HC_M = NA
+ass3$PITCH_F0SD_HC_SD = NA
+ass3$PITCH_F0SD_SZ_M = NA
+ass3$PITCH_F0SD_SZ_SD = NA
+ass3$pitch_f0_variability = NA 
+
+# as.factor(ass3$ACOUST_ANA_DESCR)
+# as.factor(ass3$DESCRIPTION)
+# as.factor(ass3$COMMENTS)
+# as.factor(ass3$frequency)
+# as.factor(ass3$Title)
+# as.factor(ass3$Authors)
+# as.factor(ass3$Article)
+ 
+data_all <- rbind(data_clean, ass3) 
+``` 
+
+
+```{r Cohen's D}
+# Cohens D for mean
+pitch_mean_all = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0_SZ_M, m2i=PITCH_F0_HC_M, sd1i=PITCH_F0_SZ_SD, sd2i=PITCH_F0_HC_SD, data = data_all)
+ 
+pitch_var_all = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0SD_SZ_M, m2i=PITCH_F0SD_HC_M, sd1i=PITCH_F0SD_SZ_SD, sd2i=PITCH_F0SD_HC_SD, data = data_all)
+
+
+
+# Mixed effects model 
+model_mean_all <- lmer(yi ~ 1 + (1 | StudyID), weights = 1/vi, data= pitch_mean_all, control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+
+summary(model_mean_all)
+
+model_var_all <- lmer(yi ~ 1 + (1 | StudyID), weights = 1/vi, data= pitch_var_all, control=lmerControl(check.nobs.vs.nlev="ignore", check.nobs.vs.nRE="ignore"))
+
+summary(model_var_all)
+
+
+# Meta-analysis optimisation
+model_mean_2 <- rma(yi, vi, data = pitch_mean_all, slab=StudyID)
+model_mean_2
+forest(model_mean_2)
+
+#Calling values
+model_mean_2
+model_mean_meta
+confint(model_mean_2, level = .95) 
+confint(model_mean_meta, level = .95) 
+
+
+```
+
+```{r Funnel}
+
+# Pitch
+funnel(model_mean_2, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
+
+#Range
+funnel(model_mean_meta, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
+
+```
+
+
+3. Assess the quality of the literature: report and comment on heterogeneity of the studies (tau, I2), on publication bias (funnel plot), and on influential studies.
+
+## Tips on the process to follow:
+- Download the data on all published articles analyzing pitch in schizophrenia (on gitlab)
+- Look through the dataset to find out which columns to use, and if there is any additional information written as comments (real world data is always messy!).
+    * Hint: Make sure you read the comments in the columns: `pitch_f0_variability`, `frequency`, `Title`,  `ACOUST_ANA_DESCR`, `DESCRIPTION`, and `COMMENTS`
+- Following the procedure in the slides calculate effect size and standard error of the effect size per each study. N.B. we focus on pitch mean and pitch standard deviation.
+ . first try using lmer (to connect to what you know of mixed effects models)
+
+
+- Build a forest plot of the results (forest(model))
+ 
+- Go back to Assignment 3, add your own study to the data table, and re-run meta-analysis. Do the results change?
+
+- Now look at the output of rma() and check tau and I2
