@@ -274,7 +274,7 @@ model_var_3 <- rma(yi, vi, data = test_var, slab=StudyID)
 model_var_3
 
 forest(model_var_3)
-funnel_var_all_v2 = funnel(model_var_3, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
+funnel_var_all_v3 = funnel(model_var_3, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
 ``` 
 
 
