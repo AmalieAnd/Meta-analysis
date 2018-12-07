@@ -47,7 +47,6 @@ model_mean_meta <- rma(yi, vi, data = pitch, slab=StudyID)
 forest(model_mean_meta) 
 
 
-
 ### PITCH VARIABILITY MODEL
 pitch_var = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0SD_SZ_M, m2i=PITCH_F0SD_HC_M, sd1i=PITCH_F0SD_SZ_SD, sd2i=PITCH_F0SD_HC_SD, data = data_clean)
 
@@ -95,7 +94,6 @@ ranktest(model_mean_meta)
 # Funnel plot asymmetry - Pitch variability
 regtest(model_var_meta)
 ranktest(model_var_meta) 
- 
 
 model_var_meta
 ```
@@ -181,7 +179,6 @@ ass3$pitch_f0_variability = NA
 data_all <- rbind(data_clean, ass3) 
 ``` 
 
-
 ```{r Cohen's D}
 # Cohens D for mean
 pitch_mean_all = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0_SZ_M, m2i=PITCH_F0_HC_M, sd1i=PITCH_F0_SZ_SD, sd2i=PITCH_F0_HC_SD, data = data_all)
@@ -215,13 +212,22 @@ confint(model_mean_meta, level = .95)
 ```
 
 ```{r Funnel}
-
 # Pitch
 funnel(model_mean_2, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
 
 #Range
 funnel(model_mean_meta, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
+```
 
+```{r Excl study 15}
+#Plots with exclusion of study 15
+test_var <- pitch_var_all[!pitch_var_all$StudyID == 15,]
+
+model_var_3 <- rma(yi, vi, data = test_var, slab=StudyID)
+model_var_3
+
+forest(model_var_3)
+funnel_var_all_v2 = funnel(model_var_3, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
 ```
 
 
