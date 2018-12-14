@@ -22,8 +22,8 @@ library(dplyr)
 1. What is the current evidence for distinctive patterns of pitch mean and pitch sd in schizophrenia? Report how many papers report quantitative estimates, your method to analyze them, the estimated effect size of the difference (mean effect size and standard error for pitch mean, same for pitch sd) and forest plots representing it. 
 
 ```{r Cleaning data}
-# Loading data
-data <- read.csv("Assignment5_MetaAnalysis_SR_SCHIZO.csv")  
+# Loading data 
+data <- read.csv("Assignment5_MetaAnalysis_SR_SCHIZO.csv")   
 
 # Removing studies (note: the model filters them out anyway)
 data_clean <- data[!with(data,is.na(PITCH_F0_SZ_SD) & is.na(PITCH_F0SD_SZ_SD)),]
@@ -34,7 +34,7 @@ data_clean <- data[!with(data,is.na(PITCH_F0_SZ_SD) & is.na(PITCH_F0SD_SZ_SD)),]
 ```
 
 ```{r Models}
-### PITCH MODEL
+### PITCH MODEL 
 pitch = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0_SZ_M, m2i=PITCH_F0_HC_M, sd1i=PITCH_F0_SZ_SD, sd2i=PITCH_F0_HC_SD, data = data_clean) 
 
 # Mixed effects model 
@@ -70,7 +70,7 @@ summary(model_var_meta)
 ```
 
 ```{r Testing influential studies}
-# Pitch mean
+# Pitch mean 
 inf <- influence(model_mean_meta)
 print(inf)
 plot(inf)
@@ -82,7 +82,7 @@ plot(inf2)
 ```
 
 ```{r Funnel plot}
-# Pitch
+# Pitch 
 funnel(model_mean_meta, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
 
 #Range 
@@ -93,7 +93,7 @@ confint(model_var_meta, level =.95)
 ```
 
 ```{r Add. data }
-# Funnel plot asymmetry - Pitch mean
+# Funnel plot asymmetry - Pitch mean 
 regtest(model_mean_meta) 
 ranktest(model_mean_meta)
 
@@ -107,7 +107,7 @@ model_var_meta
 
 2. Do the results match your own analysis from Assignment 3? If you add your results to the meta-analysis, do the estimated effect sizes change? Report the new estimates and the new forest plots
 ```{r Models}
-# Load data from ASS3
+# Load data from ASS3 
 data_ass3 <- read.csv("ASS3_data.csv")
 
 diagnosis <- c("Control", "Control", "Control", "Schizophrenia", "Schizophrenia", "Schizophrenia") 
@@ -127,6 +127,7 @@ predict(modelmodel_var, re.form = ~ (1| study),  newdata = diag_stud, allow.new.
 sd_mean <- data_ass3 %>% 
    dplyr::group_by(diagnosis, study) %>%
    dplyr::summarise(sd = sd(mean))
+
 sd_sd <- data_ass3 %>% 
    dplyr::group_by(diagnosis, study) %>%
    dplyr::summarise(sd = sd(sd))
@@ -220,7 +221,7 @@ data_all <- rbind(data_clean, ass3)
 ``` 
 
 ```{r Cohen's D Models}
-# Cohens D for mean
+# Cohens D for mean 
 pitch_mean_all = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0_SZ_M, m2i=PITCH_F0_HC_M, sd1i=PITCH_F0_SZ_SD, sd2i=PITCH_F0_HC_SD, data = data_all)
  
 pitch_var_all = escalc('SMD', n1i=SAMPLE_SIZE_SZ, n2i=SAMPLE_SIZE_HC, m1i=PITCH_F0SD_SZ_M, m2i=PITCH_F0SD_HC_M, sd1i=PITCH_F0SD_SZ_SD, sd2i=PITCH_F0SD_HC_SD, data = data_all)
@@ -259,7 +260,7 @@ summary(model_mean_meta)
 ```
 
 ```{r Funnel}
-# Pitch
+# Pitch 
 funnel(model_mean_2, main = "Random-Effects Model", xlab = "Standardized Mean Difference")
 
 # Range
@@ -267,7 +268,7 @@ funnel(model_var_2, main = "Random-Effects Model", xlab = "Standardized Mean Dif
 ```
 
 ```{r Excl study 15}
-#Plots with exclusion of study 15
+#Plots with exclusion of study 15 
 test_var <- pitch_var_all[!pitch_var_all$StudyID == 15,] 
 
 model_var_3 <- rma(yi, vi, data = test_var, slab=StudyID)
